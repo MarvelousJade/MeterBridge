@@ -8,13 +8,25 @@ find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
 pkg_check_modules(MODBUS REQUIRED IMPORTED_TARGET libmodbus)
 pkg_check_modules(SQLITE REQUIRED IMPORTED_TARGET sqlite3)
+pkg_check_modules(MQTT REQUIRED IMPORTED_TARGET libmosquitto)
+
+include(FetchContent)
+set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
+set(HTTPLIB_USE_ZLIB_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
+set(HTTPLIB_USE_BROTLI_IF_AVAILABLE OFF CACHE BOOL "" FORCE)
+set(HTTPLIB_INSTALL OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(httplib
+  URL https://codeload.github.com/yhirose/cpp-httplib/tar.gz/refs/tags/v0.18.3
+  URL_HASH SHA256=a0567bcd6c3fe5cef1b329b96245119047f876b49e06cc129a36a7a8dffe173e
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(httplib)
 
 add_library(meter-core src/core.cpp)
 target_include_directories(meter-core PUBLIC src)
 target_link_libraries(meter-core PUBLIC PkgConfig::MODBUS PkgConfig::SQLITE Threads::Threads)
 target_compile_options(meter-core PUBLIC -Wall -Wextra -Wpedantic -Werror)
-add_executable(meterbridge src/main.cpp)
-target_link_libraries(meterbridge PRIVATE meter-core)
+add_executable(meterbridge src/main.cpp src/mqtt.cpp)
+target_link_libraries(meterbridge PRIVATE meter-core PkgConfig::MQTT httplib::httplib)
 add_executable(meter-sim src/simulator.cpp)
 target_link_libraries(meter-sim PRIVATE meter-core)
 
