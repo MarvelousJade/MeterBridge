@@ -1,14 +1,19 @@
 """Exercise the real processes and wire protocol using only Python's standard library."""
 import json
 from contextlib import closing
+import os
 from pathlib import Path
+import pty
+import select
 import socket
 import sqlite3
 import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+import tty
 import unittest
 from urllib.error import HTTPError
 from urllib.request import urlopen
@@ -83,6 +88,7 @@ class Integration(unittest.TestCase):
         self.http_port = port()
 
     def tearDown(self):
+        failures = []
         for process in reversed(self.processes):
             if process.poll() is None:
                 process.terminate()
@@ -91,12 +97,14 @@ class Integration(unittest.TestCase):
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
+                    failures.append("process did not stop within 3 seconds")
         for process, log in zip(self.processes, self.logs):
-            if process.returncode and process.returncode > 0:
+            if process.returncode != getattr(process, "expected_exit", 0):
                 log.seek(0)
-                print(log.read(), file=sys.stderr)
+                failures.append(f"exit {process.returncode}: {log.read()}")
             log.close()
         self.temp.cleanup()
+        self.assertEqual(failures, [])
 
     def start(self, name, *args):
         log = open(self.directory / f"{Path(name).name}-{len(self.logs)}.log", "w+")
@@ -167,6 +175,7 @@ class Integration(unittest.TestCase):
         eventually(lambda: self.api("/health")[1]["pending"] >= 3)
         self.assertEqual(self.api("/health")[0], 503)
         gateway.kill()  # WAL/outbox must survive an unclean exit.
+        gateway.expected_exit = -9
         gateway.wait(3)
         pending_ids = {row[0] for row in self.rows()}
         broker = self.start("mosquitto", "-p", broker_port)
@@ -202,6 +211,139 @@ class Integration(unittest.TestCase):
         self.assertFalse(health["storage_ok"])
         self.assertEqual(health["pending"], 3)
         self.assertEqual(len(self.rows()), 3)
+
+    def test_database_failure_and_recovery(self):
+        self.sim()
+        self.gateway()
+        eventually(lambda: len(self.rows()) >= 2)
+        with closing(sqlite3.connect(self.db)) as db:
+            db.execute("CREATE TRIGGER reject_insert BEFORE INSERT ON readings BEGIN SELECT RAISE(ABORT, 'injected write failure'); END")
+            db.commit()
+        eventually(lambda: not self.api("/health")[1]["storage_ok"])
+        self.assertEqual(self.api("/health")[0], 503)
+        count = len(self.rows())
+        with closing(sqlite3.connect(self.db)) as db:
+            db.execute("DROP TRIGGER reject_insert")
+            db.commit()
+        eventually(lambda: len(self.rows()) > count)
+        eventually(lambda: self.api("/health")[0] == 200)
+
+    def test_lower_retention_limit_after_restart(self):
+        self.sim()
+        gateway = self.gateway()
+        eventually(lambda: len(self.rows()) >= 5)
+        gateway.terminate()
+        self.assertEqual(gateway.wait(3), 0)
+        self.gateway("--max-rows", 2)
+        eventually(lambda: len(self.rows()) == 2)
+
+    def test_rtu_over_pseudo_terminals(self):
+        first, second = pty.openpty(), pty.openpty()
+        tty.setraw(first[1])
+        tty.setraw(second[1])
+        stop = threading.Event()
+
+        def relay():
+            while not stop.is_set():
+                ready, _, _ = select.select([first[0], second[0]], [], [], 0.1)
+                for source in ready:
+                    data = os.read(source, 512)
+                    os.write(second[0] if source == first[0] else first[0], data)
+
+        thread = threading.Thread(target=relay, daemon=True)
+        thread.start()
+
+        def cleanup():
+            stop.set()
+            thread.join(1)
+            for fd in (*first, *second):
+                os.close(fd)
+
+        self.addCleanup(cleanup)
+        self.start("meter-sim", "--serial", os.ttyname(first[1]), "--unit", 7)
+        self.gateway("--serial", os.ttyname(second[1]), "--unit", 7)
+        eventually(lambda: len(self.rows()) >= 3)
+        self.assertEqual(self.rows()[0][1:4], (230.0, 5.0, 1150))
+        self.assertEqual(self.api("/health")[0], 200)
+
+    def fake_server(self, server_port, handler):
+        listener = socket.socket()
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.bind(("127.0.0.1", server_port))
+        listener.listen(2)
+        listener.settimeout(0.1)
+        stop = threading.Event()
+
+        def serve():
+            while not stop.is_set():
+                try:
+                    client, _ = listener.accept()
+                    with client:
+                        client.settimeout(1)
+                        handler(client, stop)
+                except OSError:
+                    pass
+
+        thread = threading.Thread(target=serve, daemon=True)
+        thread.start()
+
+        def cleanup():
+            stop.set()
+            thread.join(2)
+            listener.close()
+
+        self.addCleanup(cleanup)
+
+    def test_meter_timeout(self):
+        self.fake_server(self.meter_port, lambda client, stop: stop.wait(1))
+        gateway = self.gateway()
+        eventually(lambda: self.api("/health")[1]["poll_errors"] >= 1)
+        self.assertEqual(self.rows(), [])
+        self.assertEqual(self.api("/health")[0], 503)
+        gateway.terminate()
+        self.assertEqual(gateway.wait(3), 0)
+
+    def test_wrong_transaction_is_rejected(self):
+        def wrong_transaction(client, stop):
+            request = client.recv(260)
+            if len(request) >= 7:
+                wrong_id = (int.from_bytes(request[:2], "big") + 1) % 65536
+                client.sendall(struct.pack(">HHHBBB6H", wrong_id, 0, 15, 1, 3, 12, 2300, 500, 0, 1150, 0, 1000))
+
+        self.fake_server(self.meter_port, wrong_transaction)
+        self.gateway()
+        eventually(lambda: self.api("/health")[1]["poll_errors"] >= 2)
+        self.assertEqual(self.rows(), [])
+
+    def test_unacknowledged_mqtt_stays_pending(self):
+        broker_port = port()
+        received = threading.Event()
+
+        def no_ack(client, stop):
+            kind, _ = mqtt_packet(client)
+            if kind == 0x10:
+                client.sendall(b"\x20\x02\x00\x00")
+                kind, _ = mqtt_packet(client)
+                if kind & 0xF6 == 0x32:
+                    received.set()
+                    stop.wait(5)  # Deliberately withhold PUBACK.
+
+        self.fake_server(broker_port, no_ack)
+        self.sim()
+        gateway = self.gateway("--mqtt-host", "127.0.0.1", "--mqtt-port", broker_port)
+        self.assertTrue(received.wait(5))
+        eventually(lambda: self.api("/health")[1]["pending"] >= 3)
+        with closing(sqlite3.connect(self.db)) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM readings WHERE sent=1").fetchone()[0], 0)
+        gateway.terminate()
+        self.assertEqual(gateway.wait(3), 0)
+
+    def test_invalid_configuration_fails(self):
+        result = subprocess.run([str(BIN / "meterbridge"), "--interval-ms", "0", "--db", str(self.db)],
+                                capture_output=True, text=True, timeout=3)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("invalid value", result.stderr)
+        self.assertFalse(self.db.exists())
 
     def test_modbus_wire_contract(self):
         self.sim()

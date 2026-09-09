@@ -159,9 +159,12 @@ void Store::append(Reading& r, bool pending) {
     try {
         Statement count(db_, "SELECT COUNT(*) FROM readings");
         count.step();
-        if (sqlite3_column_int(count.ptr, 0) >= max_rows_) {
-            sql(db_, "DELETE FROM readings WHERE id=(SELECT id FROM readings WHERE sent=1 ORDER BY id LIMIT 1)");
-            if (sqlite3_changes(db_) == 0) throw std::runtime_error("outbox full; sample rejected");
+        const int excess = sqlite3_column_int(count.ptr, 0) - max_rows_ + 1;
+        if (excess > 0) {
+            Statement prune(db_, "DELETE FROM readings WHERE id IN (SELECT id FROM readings WHERE sent=1 ORDER BY id LIMIT ?)");
+            sqlite3_bind_int(prune.ptr, 1, excess);
+            prune.step();
+            if (sqlite3_changes(db_) < excess) throw std::runtime_error("outbox full; sample rejected");
         }
         Statement insert(db_, "INSERT INTO readings(timestamp_ms,voltage_v,current_a,power_w,energy_wh,sent) VALUES(?,?,?,?,?,?)");
         sqlite3_bind_int64(insert.ptr, 1, r.timestamp_ms);

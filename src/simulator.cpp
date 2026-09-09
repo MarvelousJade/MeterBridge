@@ -5,6 +5,10 @@
 
 int main(int argc, char** argv) {
     try {
+        if (argc == 2 && std::string(argv[1]) == "--help") {
+            std::cout << "meter-sim [--port 1502] [--serial /dev/ttyUSB0 --baud 9600] [--unit 1]\n";
+            return 0;
+        }
         mb::signals();
         mb::Args args(argc, argv, {"--port", "--serial", "--baud", "--unit"});
         const auto serial = args.text("--serial");
