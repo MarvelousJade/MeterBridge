@@ -1,0 +1,21 @@
+[Unit]
+Description=MeterBridge energy-meter gateway
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=meterbridge
+Environment=METER_HOST=127.0.0.1
+ExecStart=/usr/local/bin/meterbridge --meter-host ${METER_HOST} --db /var/lib/meterbridge/readings.db
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

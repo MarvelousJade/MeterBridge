@@ -1,0 +1,25 @@
+name: build
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  linux:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++ pkg-config libmodbus-dev libsqlite3-dev libmosquitto-dev mosquitto python3
+      - name: Build and test
+        run: sh scripts/check.sh
+      - name: Check memory and undefined behavior
+        env:
+          BUILD_DIR: build-asan
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1
+        run: sh scripts/check.sh -DMETERBRIDGE_SANITIZE=ON
