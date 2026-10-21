@@ -30,4 +30,69 @@
   already handled by the database/outbox. This is not exactly-once delivery.
 - Design implication: database atomicity and in-memory publication are distinct
   boundaries. Keep caller mutation after the fallible durable operation.
-- Fix commit and passing evidence: recorded below once verified.
+- Fix commit: `1a53612`; [green log](evidence/commit-failure-green.txt):
+  2 tests passed, 0 failed (0.11 s). No intentional implementation fault was
+  introduced for this defect; the commit hook only triggers the failure path.
+
+## MB-002 — Active transaction exposes a partial retention prune
+
+**Controlled fault**, not an unexpected incident. Started from verified `1a53612`
+in local worktree `build-investigation/worktree`, branch
+`investigation/rollback-cleanup`. All data were disposable temporary databases.
+
+1. Added `storage_partial_prune` in `55526eb`; all 3 tests passed
+   ([baseline log](evidence/rollback-baseline.txt)). Fill capacity 3 with one
+   acknowledged and two pending rows; reopen at capacity 2. The next append needs
+   two evictions but can safely evict only one, so it must reject and restore all
+   history. This covers a different boundary from a completely full outbox.
+2. Deliberately removed catch-path ROLLBACK in `0abaaf8` (one fault).
+   [Failing log](evidence/rollback-red.txt): original connection sees **2** rows,
+   not 3. The test was then strengthened with an independent observer connection:
+   it still sees **3** committed rows. This distinguishes incomplete transaction
+   cleanup from durable deletion or wrong pending selection.
+3. Root cause: DELETE succeeded inside BEGIN IMMEDIATE; capacity validation then
+   threw; without ROLLBACK the writer kept its transaction-local deletion and
+   lock. A retry would also encounter an already active transaction. Disk state
+   is not yet lost, but same-process REST history would omit a row and polling
+   could no longer append normally.
+4. Restored ROLLBACK in `834c572`; the same connection now sees all 3 rows, then
+   successfully acknowledges another row and appends at the lower capacity.
+   [Green log](evidence/rollback-green.txt): all 3 tests pass. Broader checks here
+   mean the portable storage suite, not unavailable Linux process checks.
+5. Integrated baseline regression as `3062324`, plus observer assertions in the
+   subsequent capacity-validation commit. Main's rollback implementation was
+   already correct: **no implementation fix is claimed for MB-002 on main**.
+
+Tradeoff: one explicit transaction keeps retention and insertion atomic; failure
+cleanup is part of that contract. An RAII transaction helper is a possible future
+simplification, not justified for this one transaction today. The fault branch
+has not been pushed and ends in repaired code.
+
+## MB-003 — Invalid Store capacity creates an unusable database
+
+- Origin: genuine constructor validation gap in `a1cdda7`, unchanged in `1a53612`.
+  Discovered while checking the new portable Store boundary. CLI already rejects
+  invalid capacity, so impact is limited to direct library callers.
+- Reproduce: construct `Store(temp_path, 0)` (also test -1). Expected:
+  `invalid_argument` before any filesystem side effect. Actual: constructor
+  succeeds and creates a schema, then samples cannot be accepted normally.
+- Hypotheses: CLI validation might be sufficient, or Store might validate itself.
+  Direct test bypasses CLI and confirms it does not. No cache or concurrency is
+  involved. [Red log](evidence/capacity-red.txt) fails the constructor assertion.
+- Cause: max_rows was assigned without validation; append assumes positive
+  capacity in its eviction arithmetic.
+- Fix: validate positive capacity before sqlite3_open. Test asserts both rejection
+  and absence of a new database, for 0 and -1. A positive-capacity store is covered
+  by every other scenario. No schema or valid CLI behavior changes.
+- Passing evidence and commit are linked in the final verification ledger.
+  Prevention: validate invariants where state is owned, not only at an adapter.
+
+## Host tooling observation
+
+Adding filesystem tests initially produced Windows loader error `0xc0000139`
+before a scenario could run (the first CTest attempt was stopped at 40 seconds).
+`where.exe libstdc++-6.dll` found Git's DLL ahead of the GCC 16.1 runtime; PE import
+inspection with `objdump -p` confirmed the executable's dynamic runtime dependency.
+Prepending the selected compiler's bin directory to PATH made the same executable
+pass without code changes. This is a host dependency-resolution issue, not a
+storage defect. Reproduction instructions now call out matching compiler DLLs.

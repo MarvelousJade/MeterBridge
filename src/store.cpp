@@ -30,6 +30,7 @@ Reading row(sqlite3_stmt* s) {
 }
 
 Store::Store(const std::string& path, int max_rows) : max_rows_(max_rows) {
+    if (max_rows <= 0) throw std::invalid_argument("max_rows must be positive");
     try {
         if (sqlite3_open(path.c_str(), &db_) != SQLITE_OK) throw std::runtime_error(sqlite3_errmsg(db_));
         sqlite3_busy_timeout(db_, 500);

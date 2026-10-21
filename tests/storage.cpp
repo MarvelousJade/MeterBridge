@@ -81,7 +81,11 @@ void partial_prune() {
     }
     require(rejected, "insufficient acknowledged history must reject append");
     const auto rows = store.recent(10);
-    std::cout << "rows after rejected prune: " << rows.size() << " (expected 3)\n";
+    mb::Store observer(database.path(), 3);
+    const auto persisted = observer.recent(10);
+    std::cout << "rows after rejected prune: " << rows.size() << " (expected 3)\n"
+              << "rows from independent connection: " << persisted.size() << " (expected 3)\n";
+    require(persisted.size() == 3, "failed append must not change durable history");
     require(rows.size() == 3 && rows[2].id == a.id && rows[0].id == c.id,
             "partial prune must restore all history");
     require(candidate.id == 0 && store.pending_count() == 2 && store.pending()->id == b.id,
@@ -90,6 +94,16 @@ void partial_prune() {
     store.append(candidate, true);
     require(store.recent(10).size() == 2 && store.pending()->id == c.id,
             "same connection recovers after rejected prune");
+}
+void invalid_capacity() {
+    TemporaryDatabase database;
+    for (const int capacity : {0, -1}) {
+        bool rejected = false;
+        try { mb::Store store(database.path(), capacity); }
+        catch (const std::invalid_argument&) { rejected = true; }
+        require(rejected, "nonpositive capacity must fail at construction");
+        require(!std::filesystem::exists(database.path()), "invalid capacity must not create a database");
+    }
 }
 void baseline() {
     const auto normal = mb::decode({2300, 500, 0, 1150, 1, 0});
@@ -120,6 +134,7 @@ int main(int argc, char** argv) {
         if (scenario == "baseline") baseline();
         else if (scenario == "commit_failure") commit_failure();
         else if (scenario == "partial_prune") partial_prune();
+        else if (scenario == "invalid_capacity") invalid_capacity();
         else throw std::runtime_error("unknown scenario: " + scenario);
         std::cout << "PASS " << scenario << " (SQLite " << sqlite3_libversion() << ")\n";
     } catch (const std::exception& e) { std::cerr << "FAIL " << e.what() << '\n'; return 1; }

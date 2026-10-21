@@ -1,0 +1,30 @@
+UpdateCTestConfiguration  from :E:/C++ PROJECTS/MeterBridge/build-investigation/native/DartConfiguration.tcl
+Parse Config file:E:/C++ PROJECTS/MeterBridge/build-investigation/native/DartConfiguration.tcl
+Test project E:/C++ PROJECTS/MeterBridge/build-investigation/native
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 3
+    Start 3: storage_partial_prune
+
+3: Test command: "E:\C++ PROJECTS\MeterBridge\build-investigation\native\storage-tests.exe" "partial_prune"
+3: Working Directory: E:/C++ PROJECTS/MeterBridge/build-investigation/native
+3: Test timeout computed to be: 1500
+3: append rejection: outbox full; sample rejected
+3: rows after rejected prune: 2 (expected 3)
+3: rows from independent connection: 3 (expected 3)
+3: FAIL partial prune must restore all history
+1/1 Test #3: storage_partial_prune ............***Failed    0.16 sec
+
+0% tests passed, 1 tests failed out of 1
+
+Total Test time (real) =   0.17 sec
+
+The following tests FAILED:
+	  3 - storage_partial_prune (Failed)
+Errors while running CTest
+Output from these tests are in: E:/C++ PROJECTS/MeterBridge/build-investigation/native/Testing/Temporary/LastTest.log
+Use "--rerun-failed --output-on-failure" to re-run the failed cases verbosely.

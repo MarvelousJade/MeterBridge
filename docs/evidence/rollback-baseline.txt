@@ -1,0 +1,15 @@
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: E:/C++ PROJECTS/MeterBridge/build-investigation/native
+ninja: no work to do.
+Test project E:/C++ PROJECTS/MeterBridge/build-investigation/native
+    Start 1: storage_baseline
+1/3 Test #1: storage_baseline .................   Passed    0.01 sec
+    Start 2: storage_commit_failure
+2/3 Test #2: storage_commit_failure ...........   Passed    0.01 sec
+    Start 3: storage_partial_prune
+3/3 Test #3: storage_partial_prune ............   Passed    0.10 sec
+
+100% tests passed out of 3
+
+Total Test time (real) =   0.13 sec

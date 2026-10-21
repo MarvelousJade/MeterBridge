@@ -1,0 +1,19 @@
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: E:/C++ PROJECTS/MeterBridge/build-native
+[1/3] Building CXX object CMakeFiles/meter-storage.dir/src/store.cpp.obj
+[2/3] Linking CXX static library libmeter-storage.a
+[3/3] Linking CXX executable storage-tests.exe
+Test project E:/C++ PROJECTS/MeterBridge/build-native
+    Start 1: storage_baseline
+1/4 Test #1: storage_baseline .................   Passed    0.13 sec
+    Start 2: storage_commit_failure
+2/4 Test #2: storage_commit_failure ...........   Passed    0.01 sec
+    Start 3: storage_partial_prune
+3/4 Test #3: storage_partial_prune ............   Passed    0.71 sec
+    Start 4: storage_invalid_capacity
+4/4 Test #4: storage_invalid_capacity .........   Passed    0.01 sec
+
+100% tests passed out of 4
+
+Total Test time (real) =   0.90 sec

@@ -1,0 +1,24 @@
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: E:/C++ PROJECTS/MeterBridge/build-native
+[1/2] Building CXX object CMakeFiles/storage-tests.dir/tests/storage.cpp.obj
+[2/2] Linking CXX executable storage-tests.exe
+Test project E:/C++ PROJECTS/MeterBridge/build-native
+    Start 1: storage_baseline
+1/4 Test #1: storage_baseline .................   Passed    0.09 sec
+    Start 2: storage_commit_failure
+2/4 Test #2: storage_commit_failure ...........   Passed    0.01 sec
+    Start 3: storage_partial_prune
+3/4 Test #3: storage_partial_prune ............   Passed    0.10 sec
+    Start 4: storage_invalid_capacity
+4/4 Test #4: storage_invalid_capacity .........***Failed    0.06 sec
+FAIL nonpositive capacity must fail at construction
+
+
+75% tests passed, 1 tests failed out of 4
+
+Total Test time (real) =   0.29 sec
+
+The following tests FAILED:
+	  4 - storage_invalid_capacity (Failed)
+Errors while running CTest
