@@ -79,3 +79,17 @@ integration and cannot replace it.
 - Research above finished before storage changes. Selected a bounded storage
   reliability release with portable direct verification; Linux runtime gate is
   explicitly unresolved.
+- `e82f808`: extracted Reading/Store, added storage-only CMake and baseline
+  checks. Real SQLite 3.54.1 from a checksum-verified public-domain amalgamation
+  built with MinGW. Baseline passed; no gateway port attempted.
+- `1a53612`: reproduced MB-001 with a SQLite commit hook, then repaired caller-ID
+  publication. Database rollback already worked; caller state did not. Red and
+  green logs retained.
+- Controlled MB-002 in a separate worktree: verified test, omitted ROLLBACK,
+  distinguished transaction-local from committed state using two connections,
+  restored cleanup. `3062324` integrates coverage, not a fictitious main fix.
+- `4691e65`: MB-003 rejects nonpositive Store capacity before creating files;
+  tests cover 0 and -1. Added observer coverage and investigation provenance.
+- Expanded direct tests cover insert rejection after eviction, repeated ACK,
+  two reopens with signed/unsigned numeric boundaries, and real writer contention
+  with successful retry. Seven native scenarios pass (1.10 s); no benchmark claim.

@@ -12,9 +12,11 @@ sh scripts/check-storage.sh
 ```
 
 On Windows Git Bash with MinGW GCC, CMake, Ninja, curl and unzip, the exact
-local dependency preparation used on 2026-10-21 was:
+local dependency preparation used on 2026-10-21 was (adjust the compiler bin
+path to your installation; it must precede Git's bundled MinGW DLLs):
 
 ```sh
+export PATH=/c/ProgramData/mingw64/mingw64/bin:$PATH
 mkdir -p build-native/deps
 curl -fL https://www.sqlite.org/2026/sqlite-amalgamation-3540100.zip -o build-native/deps/sqlite.zip
 echo '0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9 *build-native/deps/sqlite.zip' | sha256sum -c -
@@ -38,10 +40,17 @@ SQLite 3.54.1. Warnings treated as errors for project code.
 | Source state | Command/check | Result |
 |---|---|---|
 | a1cdda7 | `wsl --exec sh -lc 'uname -a'` | Blocked: WSL has no installed distributions. Docker/Podman also unavailable. Existing binaries are Linux ELF. |
-| portable storage extraction (next commit after f4306f7) | command above | CTest 1 passed, 0 failed, 0 skipped; one baseline scenario, 0.24 s. |
+| e82f808 extraction | command above | CTest 1 passed, 0 failed, 0 skipped; one baseline scenario, 0.24 s. |
+| e82f808 + commit-failure test | same command | 1 passed, 1 failed; caller ID 2 instead of 777. [Log](evidence/commit-failure-red.txt). |
+| 1a53612 repair | same command | 2 passed, 0 failed, 0 skipped; 0.11 s. [Log](evidence/commit-failure-green.txt). |
+| 0abaaf8 intentional rollback fault + observer assertion | targeted partial_prune | 0 passed, 1 failed; writer sees 2 rows, observer 3. [Log](evidence/rollback-red.txt). |
+| 834c572 isolated repair | all storage tests in isolated build | 3 passed, 0 failed, 0 skipped. [Log](evidence/rollback-green.txt). |
+| 3062324 + observer/capacity tests | native command | 3 passed, 1 failed; invalid constructor accepted. [Log](evidence/capacity-red.txt). |
+| 4691e65 capacity repair | native command | 4 passed, 0 failed, 0 skipped. [Log](evidence/capacity-green.txt). |
+| 4691e65 + expanded storage regressions (next test commit) | native command | 7 passed, 0 failed, 0 skipped; 1.10 s. [Log](evidence/storage-suite.txt). |
 
-Do not combine run counts. Subsequent regressions/results are recorded below as
-work proceeds. The README's September Linux/sanitizer claims are historical
+Do not combine run counts. Logs identify the exact commands; source state in the
+table identifies uncommitted test overlays when relevant. The README's September Linux/sanitizer claims are historical
 repository evidence, not checks performed in this release.
 
 ## Linux integration gate
