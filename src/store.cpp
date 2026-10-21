@@ -63,8 +63,10 @@ void Store::append(Reading& r, bool pending) {
         sqlite3_bind_int64(insert.ptr, 5, r.energy_wh);
         sqlite3_bind_int(insert.ptr, 6, pending ? 0 : 1);
         insert.step();
-        r.id = sqlite3_last_insert_rowid(db_);
+        const auto committed_id = sqlite3_last_insert_rowid(db_);
         sql(db_, "COMMIT");
+        // SQLite rollback cannot undo mutations to the caller's object.
+        r.id = committed_id;
     } catch (...) { sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr); throw; }
 }
 std::vector<Reading> Store::recent(int limit) {

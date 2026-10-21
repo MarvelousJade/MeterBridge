@@ -1,0 +1,22 @@
+-- Configuring done (0.1s)
+-- Generating done (0.0s)
+-- Build files have been written to: E:/C++ PROJECTS/MeterBridge/build-native
+[1/2] Building CXX object CMakeFiles/storage-tests.dir/tests/storage.cpp.obj
+[2/2] Linking CXX executable storage-tests.exe
+Test project E:/C++ PROJECTS/MeterBridge/build-native
+    Start 1: storage_baseline
+1/2 Test #1: storage_baseline .................   Passed    0.08 sec
+    Start 2: storage_commit_failure
+2/2 Test #2: storage_commit_failure ...........***Failed    0.01 sec
+commit rejection: constraint failed
+caller id after failure: 2 (expected 777)
+FAIL failed commit must preserve caller identity
+
+
+50% tests passed, 1 tests failed out of 2
+
+Total Test time (real) =   0.11 sec
+
+The following tests FAILED:
+	  2 - storage_commit_failure (Failed)
+Errors while running CTest
