@@ -1,5 +1,7 @@
 #include "store.hpp"
 #include <iostream>
+#include <filesystem>
+#include <random>
 #include <limits>
 #include <stdexcept>
 
@@ -46,6 +48,49 @@ void commit_failure() {
     store.append(candidate, true);
     require(candidate.id > saved.id && store.pending()->id == candidate.id, "retry after commit failure");
 }
+struct TemporaryDatabase {
+    std::filesystem::path directory;
+    TemporaryDatabase() {
+        for (int attempt = 0; attempt < 100; ++attempt) {
+            directory = std::filesystem::temp_directory_path() /
+                ("meterbridge-storage-" + std::to_string(std::random_device{}()));
+            if (std::filesystem::create_directory(directory)) return;
+        }
+        throw std::runtime_error("cannot create test directory");
+    }
+    ~TemporaryDatabase() {
+        std::error_code ignored;
+        std::filesystem::remove_all(directory, ignored);
+    }
+    std::string path() const { return (directory / "readings.db").string(); }
+};
+void partial_prune() {
+    TemporaryDatabase database;
+    auto a = mb::decode({2300, 500, 0, 1150, 0, 42}), b = a, c = a, candidate = a;
+    {
+        mb::Store store(database.path(), 3);
+        store.append(a, false);
+        store.append(b, true);
+        store.append(c, true);
+    }
+    mb::Store store(database.path(), 2);
+    bool rejected = false;
+    try { store.append(candidate, true); } catch (const std::runtime_error& error) {
+        rejected = true;
+        std::cout << "append rejection: " << error.what() << '\n';
+    }
+    require(rejected, "insufficient acknowledged history must reject append");
+    const auto rows = store.recent(10);
+    std::cout << "rows after rejected prune: " << rows.size() << " (expected 3)\n";
+    require(rows.size() == 3 && rows[2].id == a.id && rows[0].id == c.id,
+            "partial prune must restore all history");
+    require(candidate.id == 0 && store.pending_count() == 2 && store.pending()->id == b.id,
+            "rejection preserves identity and pending FIFO");
+    store.acknowledge(b.id);
+    store.append(candidate, true);
+    require(store.recent(10).size() == 2 && store.pending()->id == c.id,
+            "same connection recovers after rejected prune");
+}
 void baseline() {
     const auto normal = mb::decode({2300, 500, 0, 1150, 1, 0});
     require(normal.voltage_v == 230 && normal.current_a == 5 && normal.power_w == 1150 && normal.energy_wh == 65536,
@@ -74,6 +119,7 @@ int main(int argc, char** argv) {
         const std::string scenario = argc == 2 ? argv[1] : "baseline";
         if (scenario == "baseline") baseline();
         else if (scenario == "commit_failure") commit_failure();
+        else if (scenario == "partial_prune") partial_prune();
         else throw std::runtime_error("unknown scenario: " + scenario);
         std::cout << "PASS " << scenario << " (SQLite " << sqlite3_libversion() << ")\n";
     } catch (const std::exception& e) { std::cerr << "FAIL " << e.what() << '\n'; return 1; }
