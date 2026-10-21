@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 #include <modbus/modbus.h>
-#include <sqlite3.h>
+#include "store.hpp"
 
 namespace mb {
 using Clock = std::chrono::steady_clock;
@@ -26,14 +26,6 @@ private:
     std::map<std::string, std::string> values_;
 };
 
-struct Reading {
-    std::int64_t id{}, timestamp_ms{};
-    double voltage_v{}, current_a{};
-    std::int32_t power_w{};
-    std::uint32_t energy_wh{};
-    std::string json() const;
-};
-Reading decode(const std::array<std::uint16_t, 6>& words);
 void wait(std::atomic_bool& stop, int milliseconds);
 void signals();
 bool interrupted();
@@ -52,21 +44,5 @@ private:
     int port_;
 };
 
-// One connection, serialized across poller, REST and outbox workers.
-class Store {
-public:
-    explicit Store(const std::string& path, int max_rows = 10000);
-    ~Store();
-    Store(const Store&) = delete;
-    Store& operator=(const Store&) = delete;
-    void append(Reading& reading, bool pending);
-    std::vector<Reading> recent(int limit);
-    std::optional<Reading> pending();
-    void acknowledge(std::int64_t id);
-    int pending_count();
-private:
-    sqlite3* db_{};
-    std::mutex mutex_;
-    int max_rows_;
-};
+
 }
