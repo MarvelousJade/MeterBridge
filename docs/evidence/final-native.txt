@@ -1,0 +1,44 @@
+Source commit: 1244d7252ce581e4445b1cb6396bd11edd411d77
+Host: MINGW64_NT-10.0-26300 3.4.10-87d57229.x86_64 x86_64
+g++.exe (x86_64-posix-seh-rev0, Built by MinGW-Builds project) 16.1.0
+cmake version 4.4.4
+1.13.2
+
+Command: BUILD_DIR=build-native-clean sh scripts/check-storage.sh with explicit SQLite3 paths
+-- The CXX compiler identification is GNU 16.1.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/ProgramData/mingw64/mingw64/bin/c++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- Found SQLite3: E:/C++ PROJECTS/MeterBridge/build-native/deps/libsqlite3.a (found version "3.54.1")
+-- Configuring done (3.0s)
+-- Generating done (0.0s)
+-- Build files have been written to: E:/C++ PROJECTS/MeterBridge/build-native-clean
+[1/5] Building CXX object CMakeFiles/meter-storage.dir/src/store.cpp.obj
+[2/5] Building CXX object CMakeFiles/meter-storage.dir/src/reading.cpp.obj
+[3/5] Linking CXX static library libmeter-storage.a
+[4/5] Building CXX object CMakeFiles/storage-tests.dir/tests/storage.cpp.obj
+[5/5] Linking CXX executable storage-tests.exe
+Test project E:/C++ PROJECTS/MeterBridge/build-native-clean
+    Start 1: storage_baseline
+1/7 Test #1: storage_baseline .................   Passed    0.10 sec
+    Start 2: storage_commit_failure
+2/7 Test #2: storage_commit_failure ...........   Passed    0.01 sec
+    Start 3: storage_partial_prune
+3/7 Test #3: storage_partial_prune ............   Passed    0.08 sec
+    Start 4: storage_invalid_capacity
+4/7 Test #4: storage_invalid_capacity .........   Passed    0.01 sec
+    Start 5: storage_insert_failure
+5/7 Test #5: storage_insert_failure ...........   Passed    0.10 sec
+    Start 6: storage_reopen
+6/7 Test #6: storage_reopen ...................   Passed    0.09 sec
+    Start 7: storage_lock_recovery
+7/7 Test #7: storage_lock_recovery ............   Passed    0.67 sec
+
+100% tests passed out of 7
+
+Total Test time (real) =   1.09 sec

@@ -84,7 +84,9 @@ has not been pushed and ends in repaired code.
 - Fix: validate positive capacity before sqlite3_open. Test asserts both rejection
   and absence of a new database, for 0 and -1. A positive-capacity store is covered
   by every other scenario. No schema or valid CLI behavior changes.
-- Passing evidence and commit are linked in the final verification ledger.
+- Fix commit `4691e65`; [green log](evidence/capacity-green.txt): 4 passed,
+  0 failed/skipped. Final expanded seven-case run also passes; see the
+  [verification ledger](verification.md).
   Prevention: validate invariants where state is owned, not only at an adapter.
 
 ## Host tooling observation

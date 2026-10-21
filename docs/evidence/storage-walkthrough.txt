@@ -1,0 +1,23 @@
+Source commit: 1244d7252ce581e4445b1cb6396bd11edd411d77
+
+Command: storage-tests commit_failure
+commit rejection: constraint failed
+caller id after failure: 777 (expected 777)
+PASS commit_failure (SQLite 3.54.1)
+
+Command: storage-tests partial_prune
+append rejection: outbox full; sample rejected
+rows after rejected prune: 3 (expected 3)
+rows from independent connection: 3 (expected 3)
+PASS partial_prune (SQLite 3.54.1)
+
+Command: storage-tests insert_failure
+insert rejection: test insert rejection
+PASS insert_failure (SQLite 3.54.1)
+
+Command: storage-tests reopen
+PASS reopen (SQLite 3.54.1)
+
+Command: storage-tests lock_recovery
+writer contention: database is locked
+PASS lock_recovery (SQLite 3.54.1)

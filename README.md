@@ -69,7 +69,25 @@ MQTT is plaintext and intended for a trusted local lab; no cloud service is requ
 
 ## Verification
 
-On September 9, 2026, the core checks and **12 integration scenarios** passed on
+The storage reliability update adds **seven portable storage scenarios** using the
+actual C++ Store and real SQLite: failed commit, partial retention rollback,
+invalid capacity, insert rejection, restart/replay, writer contention and baseline
+encoding/outbox behavior. Failed appends preserve caller identity and pending
+history; invalid Store capacity is rejected before database creation.
+
+```sh
+# Linux with SQLite development files; builds only the storage checks:
+sh scripts/check-storage.sh
+```
+
+These passed on Windows/MinGW on October 21, 2026 with SQLite 3.54.1. The gateway
+itself still targets Linux. This host has no installed WSL distribution, so the
+current Linux gateway, process integration and sanitizer checks **have not been
+rerun**. See [exact setup, run ledger and limits](docs/verification.md), including
+native Windows dependency instructions. Do not treat storage checks as complete
+runtime validation.
+
+Historical baseline: on September 9, 2026, the core checks and **12 integration scenarios** passed on
 x86-64 Linux under WSL, including AddressSanitizer and UndefinedBehaviorSanitizer
 with leak detection. Environment: GCC 14.2.1, libmodbus 3.1.12, SQLite 3.49.1,
 Mosquitto 2.1.2, and cpp-httplib 0.18.3.
@@ -111,3 +129,11 @@ directory. Set its `METER_HOST` environment value for the meter. For RTU, overri
 References: [libmodbus](https://libmodbus.org/reference/),
 [Mosquitto](https://mosquitto.org/api/files/mosquitto-h.html),
 [cpp-httplib](https://github.com/yhirose/cpp-httplib/tree/v0.18.3).
+
+## Technical documentation
+
+- [Feature walkthrough and failure demonstrations](docs/walkthrough.md)
+- [Requirements, reference comparison, decisions and engineering journal](docs/engineering.md)
+- [Bug investigations with failing/passing evidence](docs/investigations.md)
+- [Interview explanations, tradeoffs and demonstration plan](docs/interview.md)
+- [Changelog](CHANGELOG.md)

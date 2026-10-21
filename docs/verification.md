@@ -35,7 +35,7 @@ include/library variables. No SQLite update is forced on deployed Linux systems.
 ## Run ledger
 
 Environment: Windows x86-64, Git Bash, MinGW GCC 16.1.0 (posix-seh), CMake 4.4.4,
-SQLite 3.54.1. Warnings treated as errors for project code.
+SQLite 3.54.1, Ninja 1.13.2. Warnings treated as errors for project code.
 
 | Source state | Command/check | Result |
 |---|---|---|
@@ -47,11 +47,24 @@ SQLite 3.54.1. Warnings treated as errors for project code.
 | 834c572 isolated repair | all storage tests in isolated build | 3 passed, 0 failed, 0 skipped. [Log](evidence/rollback-green.txt). |
 | 3062324 + observer/capacity tests | native command | 3 passed, 1 failed; invalid constructor accepted. [Log](evidence/capacity-red.txt). |
 | 4691e65 capacity repair | native command | 4 passed, 0 failed, 0 skipped. [Log](evidence/capacity-green.txt). |
-| 4691e65 + expanded storage regressions (next test commit) | native command | 7 passed, 0 failed, 0 skipped; 1.10 s. [Log](evidence/storage-suite.txt). |
+| 1244d72 expanded storage regressions | native command | 7 passed, 0 failed, 0 skipped; 1.10 s. [Log](evidence/storage-suite.txt). |
+| 1244d7252ce581e4445b1cb6396bd11edd411d77 | fresh build-native-clean with explicit SQLite paths | 7 passed, 0 failed, 0 skipped; 1.09 s test time, 3.0 s configure. [Environment/build/test log](evidence/final-native.txt). |
+| 1244d72 | five direct storage CLI demonstrations from walkthrough | All returned PASS. Real constraint/insert/lock rejection messages and restored history observed. [Output](evidence/storage-walkthrough.txt). |
 
 Do not combine run counts. Logs identify the exact commands; source state in the
 table identifies uncommitted test overlays when relevant. The README's September Linux/sanitizer claims are historical
 repository evidence, not checks performed in this release.
+
+No mock SQLite was used. Reopen tests create real files; commit rejection uses a
+scoped SQLite commit hook; insert rejection uses a disposable SQL trigger; lock
+contention uses another real SQLite connection. Tests inspect observable IDs,
+measurements, counts and order, not query strings. There is no measured coverage
+percentage, gateway UI automation, rendered visual inspection or human interaction
+recorded for this release.
+
+A fresh reproduction can replace `BUILD_DIR=build-native` above with
+`BUILD_DIR=build-native-clean`. Both use the same verified local dependency.
+Targeted demonstration commands are in [the walkthrough](walkthrough.md).
 
 ## Linux integration gate
 

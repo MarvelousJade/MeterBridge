@@ -69,6 +69,36 @@ switches. Caller state must change only after durable commit; rollback handles
 partial retention and write failure. Native tests are narrower than Linux process
 integration and cannot replace it.
 
+### Module and state ownership
+
+```text
+Linux-only                            Portable
+main.cpp -> core.cpp (Meter/Args) --> reading.cpp (decode/JSON)
+   |                                     |
+   +-- HTTP handlers ----------------> store.cpp (SQLite)
+   +-- poller ----------------------->   |
+   +-- mqtt.cpp (Publisher) ---------->   +-- readings + sent flag
+```
+
+`reading.hpp` has no platform/library dependency. `store.hpp` owns SQLite and its
+mutex; `core.hpp` aggregates it for compatibility with existing gateway callers.
+There is no schema migration: existing DBs and IDs remain valid. `max_rows` must
+be positive at Store construction. Append retains caller state on failure and
+assigns the committed ID on success; identity uniqueness is per database.
+
+The main thread owns Store longer than Publisher/poller/HTTP users. Modbus has one
+polling owner; SQLite access is serialized; MQTT callbacks synchronize packet
+acknowledgement using Publisher's mutex. Store finalizes prepared statements via
+RAII and closes its connection in its destructor. Test-only auto-extension commit
+hooks are scoped and unregistered; file fixtures remove only their unique temp
+directory. File, broker and database errors remain visible through existing health
+and retry paths. This release does not change shutdown or network retry behavior.
+
+Storage-only CMake links just SQLite and Threads. Normal Linux builds link the
+same storage library into meter-core, preserving application behavior. The split
+adds a small library boundary to remove unnecessary transport coupling; it does
+not add an interface, repository abstraction or runtime plugin system.
+
 ## Journal
 
 - Initial inspection: clean main at a1cdda7, four prior commits. Read all source,
@@ -93,3 +123,12 @@ integration and cannot replace it.
 - Expanded direct tests cover insert rejection after eviction, repeated ACK,
   two reopens with signed/unsigned numeric boundaries, and real writer contention
   with successful retry. Seven native scenarios pass (1.10 s); no benchmark claim.
+- Final fresh build of `1244d72`: 7 passed, 0 failed/skipped in 1.09 s. Five direct
+  storage demonstrations also passed; outputs and environment recorded in
+  `docs/evidence/`. Linux app launch, TCP/RTU/MQTT integration and sanitizers
+  remain blocked on this host. Walkthrough distinguishes expected Linux behavior
+  from performed native checks; interview guide references actual tests/commits.
+- Publication review: unchanged MIT license and existing attribution; no copied
+  reference code/assets. Downloaded SQLite and compiled outputs are ignored.
+  Targeted tracked-file credential-pattern review found no matches; it is not a
+  comprehensive secret audit. Origin is unchanged and nothing has been pushed.
