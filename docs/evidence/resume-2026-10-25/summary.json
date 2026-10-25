@@ -1,0 +1,112 @@
+{
+  "sourceCommit": "6a7d8a1cc8048b359ffd8b39b4206545b868318c",
+  "baselineCommit": null,
+  "baselineMeaning": "Absolute current storage correctness; historical red/green comparisons are separate.",
+  "capturedAtUtc": "2026-10-25T22:57:31.128Z",
+  "category": "engineering",
+  "status": "verified bounded portable storage outcomes",
+  "environment": {
+    "node": "v22.23.3",
+    "os": "10.0.26300",
+    "platform": "win32",
+    "cpu": "AMD Ryzen 5 3600 6-Core Processor              ",
+    "logicalCpus": 12,
+    "memoryBytes": 17101787136,
+    "compiler": "g++ (x86_64-posix-seh-rev0, Built by MinGW-Builds project) 16.1.0",
+    "sqlite": "3.54.1"
+  },
+  "command": "g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Isrc -Ibuild-native/deps/sqlite-amalgamation-3540100 src/reading.cpp src/store.cpp tests/storage.cpp build-native/deps/libsqlite3.a -static -static-libgcc -static-libstdc++ -o build/resume-evidence/storage-tests.exe",
+  "workload": "Synthetic temporary SQLite databases created by tests/storage.cpp; real storage, constraint/commit-hook failures, independent observer and writer contention.",
+  "repetitions": "One execution per deterministic scenario; no timing measurement, warm-up or cache comparison.",
+  "results": [
+    {
+      "scenario": "baseline",
+      "output": "PASS baseline (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:45.6391957Z",
+      "command": "./build/resume-evidence/storage-tests.exe baseline"
+    },
+    {
+      "scenario": "commit_failure",
+      "output": "commit rejection: constraint failed\r\ncaller id after failure: 777 (expected 777)\r\nPASS commit_failure (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:45.9680390Z",
+      "command": "./build/resume-evidence/storage-tests.exe commit_failure"
+    },
+    {
+      "scenario": "partial_prune",
+      "output": "append rejection: outbox full; sample rejected\r\nrows after rejected prune: 3 (expected 3)\r\nrows from independent connection: 3 (expected 3)\r\nPASS partial_prune (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:45.9835021Z",
+      "command": "./build/resume-evidence/storage-tests.exe partial_prune"
+    },
+    {
+      "scenario": "invalid_capacity",
+      "output": "PASS invalid_capacity (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:46.1091454Z",
+      "command": "./build/resume-evidence/storage-tests.exe invalid_capacity"
+    },
+    {
+      "scenario": "insert_failure",
+      "output": "insert rejection: test insert rejection\r\nPASS insert_failure (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:46.1259554Z",
+      "command": "./build/resume-evidence/storage-tests.exe insert_failure"
+    },
+    {
+      "scenario": "reopen",
+      "output": "PASS reopen (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:46.2322196Z",
+      "command": "./build/resume-evidence/storage-tests.exe reopen"
+    },
+    {
+      "scenario": "lock_recovery",
+      "output": "writer contention: database is locked\r\nPASS lock_recovery (SQLite 3.54.1)\r\n",
+      "exitCode": 0,
+      "startedAtUtc": "2026-10-25T22:56:46.3673889Z",
+      "command": "./build/resume-evidence/storage-tests.exe lock_recovery"
+    }
+  ],
+  "fingerprints": [
+    {
+      "path": "src/reading.cpp",
+      "sha256": "d3bfaf895f3e490815199d3fdf1578c6817852b9649b94d830eefb8564fe4b72"
+    },
+    {
+      "path": "src/reading.hpp",
+      "sha256": "78789b33838bb88ed16b5de318a4cfddb45b92342854cb37a244937030266e4e"
+    },
+    {
+      "path": "src/store.cpp",
+      "sha256": "4b3ea9277362c610e39e5ba16baf5476f5706067afc231f0013c5dc3074dc867"
+    },
+    {
+      "path": "tests/storage.cpp",
+      "sha256": "ec4aa5d819825fbf0189132f0d4d18576805b72b451510cd904ea73aae4688a4"
+    },
+    {
+      "path": "build-native/deps/libsqlite3.a",
+      "sha256": "54b8db4750bcdf23368a7c2d7cea462aa763f1e4391e7f371fd87f15a1391e3a"
+    },
+    {
+      "path": "build-native/deps/sqlite-amalgamation-3540100/sqlite3.h",
+      "sha256": "d6c84557261893439b341d2e6c35187ae3ea24fbfd843ad94616f72d89242b8c"
+    },
+    {
+      "path": "build-native/deps/sqlite.zip",
+      "sha256": "0a9c8e34352dad46006aa82836d5383bff9dc6bc9ce5a60553c05aa30e6ad1f9"
+    },
+    {
+      "path": "build/resume-evidence/storage-tests.exe",
+      "sha256": "402afb25429c41cf7065027d1c5544e068602015d129e3fdfe53120519f0627b"
+    }
+  ],
+  "fingerprintBoundary": "Exact local compiler/dependency input and binary bytes; source committed independently under sourceCommit.",
+  "limitations": [
+    "Native Windows storage only; no fresh Linux gateway, TCP/RTU/MQTT, sanitizer or hardware validation.",
+    "Tests trigger defined software failures, not actual power interruption or all possible storage failures.",
+    "No speedup, throughput, observed customer impact or independent candidate implementation claim."
+  ]
+}

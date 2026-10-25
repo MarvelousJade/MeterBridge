@@ -1,0 +1,51 @@
+[
+  {
+    "scenario": "baseline",
+    "output": "PASS baseline (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:45.6391957Z",
+    "command": "./build/resume-evidence/storage-tests.exe baseline"
+  },
+  {
+    "scenario": "commit_failure",
+    "output": "commit rejection: constraint failed\r\ncaller id after failure: 777 (expected 777)\r\nPASS commit_failure (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:45.9680390Z",
+    "command": "./build/resume-evidence/storage-tests.exe commit_failure"
+  },
+  {
+    "scenario": "partial_prune",
+    "output": "append rejection: outbox full; sample rejected\r\nrows after rejected prune: 3 (expected 3)\r\nrows from independent connection: 3 (expected 3)\r\nPASS partial_prune (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:45.9835021Z",
+    "command": "./build/resume-evidence/storage-tests.exe partial_prune"
+  },
+  {
+    "scenario": "invalid_capacity",
+    "output": "PASS invalid_capacity (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:46.1091454Z",
+    "command": "./build/resume-evidence/storage-tests.exe invalid_capacity"
+  },
+  {
+    "scenario": "insert_failure",
+    "output": "insert rejection: test insert rejection\r\nPASS insert_failure (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:46.1259554Z",
+    "command": "./build/resume-evidence/storage-tests.exe insert_failure"
+  },
+  {
+    "scenario": "reopen",
+    "output": "PASS reopen (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:46.2322196Z",
+    "command": "./build/resume-evidence/storage-tests.exe reopen"
+  },
+  {
+    "scenario": "lock_recovery",
+    "output": "writer contention: database is locked\r\nPASS lock_recovery (SQLite 3.54.1)\r\n",
+    "exitCode": 0,
+    "startedAtUtc": "2026-10-25T22:56:46.3673889Z",
+    "command": "./build/resume-evidence/storage-tests.exe lock_recovery"
+  }
+]
